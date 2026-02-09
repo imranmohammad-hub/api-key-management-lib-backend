@@ -1,0 +1,18 @@
+# Source files
+src/
+tsconfig.json
+
+# Development files
+.git/
+.gitignore
+*.md
+postman_collection.json
+
+# Node modules
+node_modules/
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo

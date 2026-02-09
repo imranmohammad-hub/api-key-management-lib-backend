@@ -1,10 +1,32 @@
 {
-  "name": "api-key-management-lib-backend",
-  "version": "0.0.2",
+  "name": "@divami-labs/nestjs-api-key-management",
+  "version": "0.0.1",
+  "description": "A NestJS library for API key management with service account support",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "build": "tsc -p tsconfig.json"
+    "build": "tsc -p tsconfig.json",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "nestjs",
+    "api-key",
+    "authentication",
+    "service-account",
+    "typeorm"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": ""
   },
   "peerDependencies": {
     "@nestjs/common": "^11.0.0",
