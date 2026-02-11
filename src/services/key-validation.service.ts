@@ -1,20 +1,23 @@
 // Key Validation Service - Enterprise-grade validation with security, caching, and audit capabilities
 
-import { Injectable, HttpStatus } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Injectable, HttpStatus, Inject } from '@nestjs/common';
+import { Repository, DataSource } from 'typeorm';
 import { ApiKey } from '../entities/api-key.entity';
 import { ExpirationValidationResult, ValidationResult } from '../interfaces/service.interface';
+import { LIB_DATA_SOURCE_TOKEN } from '../constants';
 import { logger } from '../utils/logger.util';
 
 // Enterprise-grade key validation service with security, caching, rate limiting, and audit capabilities
 @Injectable()
 export class KeyValidationService {
+  private readonly apiKeyRepository: Repository<ApiKey>;
 
   constructor(
-    @InjectRepository(ApiKey)
-    private readonly apiKeyRepository: Repository<ApiKey>
-  ) { }
+    @Inject(LIB_DATA_SOURCE_TOKEN)
+    private readonly dataSource: DataSource
+  ) {
+    this.apiKeyRepository = this.dataSource.getRepository(ApiKey);
+  }
 
   // Validate API key with security checks, rate limiting, and audit logging
   async validateApiKey({
@@ -32,23 +35,41 @@ export class KeyValidationService {
         return this.createFailureResult('INVALID_FORMAT', 'API key cannot be empty', startTime);
       }
 
-      // Database validation - find key using direct comparison
-      const keyRecord = await this.apiKeyRepository.findOne({
+      // Database validation - find keys for the client
+      // If clientId is not provided, we might have a problem searching efficiently.
+      // But based on the guard, both clientId and apiKey are provided.
+      const queryOptions: any = {
         where: { 
-          api_key: keyToValidate,
           is_active: true 
         },
         select: ['id', 'client_id', 'api_key', 'expiry_date', 'is_active', 'created_at']
-      });
+      };
+
+      if (clientId) {
+        queryOptions.where.client_id = clientId;
+      }
+
+      const activeKeys = await this.apiKeyRepository.find(queryOptions);
+
+      let keyRecord: ApiKey | undefined;
+      
+      // Compare the provided key with stored keys (Raw string comparison)
+      for (const record of activeKeys) {
+        // Direct string comparison since we are now storing raw keys
+        if (keyToValidate === record.api_key) {
+          keyRecord = record;
+          break;
+        }
+      }
 
       if (!keyRecord) {
         await this.logValidation('unknown', 'validate', 'failure', {
-          reason: 'KEY_NOT_FOUND',
+          reason: 'KEY_NOT_FOUND_OR_INVALID',
           clientId,
           keyPrefix: keyToValidate.substring(0, 8) + '***'
         });
 
-        return this.createFailureResult('KEY_NOT_FOUND', 'API key not found', 404, startTime);
+        return this.createFailureResult('KEY_NOT_FOUND', 'Invalid API key or client credentials', 404, startTime);
       }
 
       // Status validation (check if key is active)

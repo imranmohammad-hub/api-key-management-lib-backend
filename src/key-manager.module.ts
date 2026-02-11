@@ -1,15 +1,15 @@
-// Key Manager Module - NestJS module for API key management
-
-import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { ApiKey } from './entities/api-key.entity';
-import { SaInfo } from './entities/sa-info.entity';
+import { Module, Global } from '@nestjs/common';
 import { KeyManagerService } from './key-manager.service';
+import { KeyGenerationService } from './services/key-generation.service';
+import { KeyValidationService } from './services/key-validation.service';
 
-// Main module providing API key management functionality
+@Global()
 @Module({
-  imports: [TypeOrmModule.forFeature([ApiKey, SaInfo])],
-  providers: [KeyManagerService],
-  exports: [KeyManagerService, TypeOrmModule],
+  providers: [
+    KeyManagerService,
+    KeyGenerationService,
+    KeyValidationService,
+  ],
+  exports: [KeyManagerService, KeyGenerationService, KeyValidationService],
 })
 export class KeyManagerModule {}
