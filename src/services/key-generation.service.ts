@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Injectable, Inject } from '@nestjs/common';
+import { Repository, DataSource } from 'typeorm';
+import { LIB_DATA_SOURCE_TOKEN } from '../constants';
 import * as crypto from 'crypto';
 import { ApiKey } from '../entities/api-key.entity';
 import { KeyGenerationParams, KeyGenerationResult, KeyGenerationServiceConfig, UniqueKeyResult } from '../interfaces/service.interface';
@@ -16,10 +16,14 @@ export class KeyGenerationService {
         defaultExpiryDays: 365
     };
 
+    private readonly apiKeyRepository: Repository<ApiKey>;
+
     constructor(
-        @InjectRepository(ApiKey)
-        private readonly apiKeyRepository: Repository<ApiKey>
-    ) { }
+        @Inject(LIB_DATA_SOURCE_TOKEN)
+        private readonly dataSource: DataSource
+    ) {
+        this.apiKeyRepository = this.dataSource.getRepository(ApiKey);
+    }
 
     // Generate base64 encoded API key
     generateRawKey(): string {

@@ -1,6 +1,6 @@
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
-import { Repository, IsNull } from 'typeorm';
-import { InjectRepository } from '@nestjs/typeorm';
+import { Injectable, HttpException, HttpStatus, Inject } from '@nestjs/common';
+import { Repository, IsNull, DataSource } from 'typeorm';
+import { LIB_DATA_SOURCE_TOKEN } from './constants';
 import { Request } from 'express';
 import * as crypto from 'crypto';
 import { ApiKey } from './entities/api-key.entity';
@@ -12,19 +12,20 @@ import { ApiKeyModel, createApiKeyModel } from './models/api-key.model';
 import { KeyGenerationService } from './services/key-generation.service';
 import { KeyValidationService } from './services/key-validation.service';
 
-// Main service for API key management
 @Injectable()
 export class KeyManagerService {
-  private keyGenerationService = new KeyGenerationService(this.apiKeyRepo);
-  private keyValidationService = new KeyValidationService(this.apiKeyRepo);
   private apiKeyModel: ApiKeyModel;
+  private readonly apiKeyRepo: Repository<ApiKey>;
+  private readonly saInfoRepo: Repository<SaInfo>;
 
   constructor(
-    @InjectRepository(ApiKey)
-    private readonly apiKeyRepo: Repository<ApiKey>,
-    @InjectRepository(SaInfo)
-    private readonly saInfoRepo: Repository<SaInfo>
+    @Inject(LIB_DATA_SOURCE_TOKEN)
+    private readonly dataSource: DataSource,
+    private readonly keyGenerationService: KeyGenerationService,
+    private readonly keyValidationService: KeyValidationService
   ) {
+    this.apiKeyRepo = this.dataSource.getRepository(ApiKey);
+    this.saInfoRepo = this.dataSource.getRepository(SaInfo);
     this.apiKeyModel = createApiKeyModel(this.apiKeyRepo);
   }
 
